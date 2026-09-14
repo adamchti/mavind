@@ -15,6 +15,8 @@ OUT="$(mktemp)"; trap 'rm -f "$OUT"' EXIT
 
 # Autologin lands us on tty1 which starts the desktop; we also get a serial
 # getty. We send `free -m` etc. over serial after SETTLE seconds.
+# GRUB already sets console=ttyS0 in boot/grub/grub.cfg.in. Do not use
+# QEMU's -append here: it requires -kernel and cannot be used for ISO boot.
 (
   sleep "$SETTLE"
   printf '\n'
@@ -25,7 +27,7 @@ OUT="$(mktemp)"; trap 'rm -f "$OUT"' EXIT
       -machine q35,accel=kvm:tcg -cpu max -smp 2 -m 2048 \
       -drive file="$ISO",media=cdrom,readonly=on -boot d \
       -netdev user,id=n0 -device virtio-net-pci,netdev=n0 \
-      -nographic -serial mon:stdio -append "console=ttyS0" \
+      -nographic -serial mon:stdio \
       2>&1 | tee "$OUT" | sed 's/^/  vm| /' || true
 
 echo

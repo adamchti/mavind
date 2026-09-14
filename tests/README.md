@@ -8,12 +8,16 @@
 | `vmware.md` | manual VMware setup notes | — |
 | `measure-size.sh` | real installed size vs the ~1 GB core target | `unsquashfs` / `xorriso` |
 | `measure-ram.sh` | boots headless, reads `free -m` over serial vs the RAM budget | `qemu-system-x86` |
+| `test-measure-ram.sh` | regression tests for RAM runner boot arguments and serial reporting (mock QEMU) | Bash, coreutils, grep, sed, awk |
 | `windows-apps/run-matrix.sh` | Windows-app compat procedure (stub) | — |
 
 ## CI
 
 `.github/workflows/build.yml` runs `build-iso.sh` then `smoke-boot.sh` on every
-push. Size/RAM measurement jobs attach their numbers to the run summary.
+push to main/master and on pull requests. The components job also runs
+`bash tests/test-measure-ram.sh` without building or booting an ISO. This checks
+command construction and report handling, not actual desktop RAM usage.
+The ISO job attaches a size report; RAM measurement is currently manual.
 
 ## Quick loop
 
