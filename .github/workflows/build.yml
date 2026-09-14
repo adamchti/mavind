@@ -31,6 +31,8 @@ jobs:
           apt-get update
           apt-get install -y --no-install-recommends git ca-certificates
       - uses: actions/checkout@v4
+      - name: RAM runner regression tests (no VM required)
+        run: bash tests/test-measure-ram.sh
       - name: Toolchain + GTK dev
         run: |
           apt-get install -y --no-install-recommends \
