@@ -88,4 +88,4 @@ packages, Wine, Mesa, labwc, GTK) under their respective licenses.
 
 ---
 
-## Created by Adam & Claude Code by Anthropic
+## Created by Adam (LokoCoder) , YK (Ultrasudo) and Claude Code by Anthropic
