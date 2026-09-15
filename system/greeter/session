@@ -12,12 +12,16 @@ export XDG_CURRENT_DESKTOP=Mavind
 export GDK_BACKEND=wayland
 export WLR_NO_HARDWARE_CURSORS=1
 
-# software rendering if there's no usable GPU node (VMs, nomodeset)
-if [ ! -e /dev/dri/renderD128 ] && [ ! -e /dev/dri/card0 ] && [ ! -e /dev/dri/card1 ]; then
-    export WLR_RENDERER=pixman
-    export LIBGL_ALWAYS_SOFTWARE=1
-    export GSK_RENDERER=cairo
-fi
+# Always software rendering here, unconditionally — not just when no DRI
+# device is present. Some VM GPU drivers (vmwgfx without "Accelerate 3D
+# graphics" enabled, in particular) DO create a /dev/dri node and then just
+# HANG forever on real GL init instead of failing cleanly, so a
+# device-exists check can't tell hardware apart from hardware-shaped-but-
+# broken. The login screen is simple and short-lived — there's nothing here
+# worth risking a hang at every single boot for.
+export WLR_RENDERER=pixman
+export LIBGL_ALWAYS_SOFTWARE=1
+export GSK_RENDERER=cairo
 
 echo "mavind-greeter: starting" >&2
 # labwc -s CMD: run CMD as startup client; labwc exits when it does (which
