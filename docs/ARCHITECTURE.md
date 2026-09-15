@@ -13,23 +13,24 @@ thin custom layer on top and removes aggressively.
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│  Mavind apps      minder · settings · system-monitor ·        │  Rust + GTK4
-│                   windows-apps · mavind-shell                 │
+│  Mavind apps      minder · settings · system-monitor ·       │  Rust + GTK4
+│                   windows-apps · mavind-shell                │
 ├──────────────────────────────────────────────────────────────┤
-│  Desktop          labwc (Wayland compositor, stacking)        │  wlroots
-│                   mako (notifications) · wofi (launcher)      │
+│  Desktop          labwc (Wayland compositor, stacking)       │  wlroots
+│                   mako (notifications) · wofi (launcher)     │
 ├──────────────────────────────────────────────────────────────┤
-│  Compatibility    Wine (multiarch) · winetricks · DXVK*       │  optional tier
-│                   mavind-wine prefix manager                  │
+│  Compatibility    Wine (multiarch) · winetricks · DXVK*      │  optional tier
+│                   mavind-wine prefix manager                 │
 ├──────────────────────────────────────────────────────────────┤
-│  Graphics         Mesa · libdrm · Wayland · seatd/libseat     │
+│  Graphics         Mesa · libdrm · Wayland · seatd/libseat    │
 ├──────────────────────────────────────────────────────────────┤
-│  Session/system   systemd (masked down) · udev · NetworkManager│
-│                   + iwd · bluez · pipewire · wireplumber       │
+│  Session/system   systemd (masked down) · udev ·             |    
+|                   NetworkManager                             |
+│                   + iwd · bluez · pipewire · wireplumber     │
 ├──────────────────────────────────────────────────────────────┤
-│  Base             Debian trixie minbase · glibc · busybox*    │
+│  Base             Debian trixie minbase · glibc · busybox*   │
 ├──────────────────────────────────────────────────────────────┤
-│  Kernel           Debian linux-image-amd64 (or custom config) │
+│  Kernel           Debian linux-image-amd64 (or custom config)│
 └──────────────────────────────────────────────────────────────┘
         * optional / where present
 ```
