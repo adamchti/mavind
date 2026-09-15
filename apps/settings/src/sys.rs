@@ -174,6 +174,18 @@ pub fn upgradable_count() -> usize {
         .unwrap_or(0)
 }
 
+/// Is a newer Mavind build available? `None` = couldn't tell (offline, or
+/// mavind-update isn't installed). Runs unprivileged — only *applying* an
+/// update needs root, not checking for one.
+pub fn mavind_update_check() -> Option<bool> {
+    let out = run("mavind-update", &["--check"])?;
+    match out.lines().next()? {
+        "UPDATE_AVAILABLE=true" => Some(true),
+        "UPDATE_AVAILABLE=false" => Some(false),
+        _ => None,
+    }
+}
+
 pub fn users() -> Vec<String> {
     fs::read_to_string("/etc/passwd")
         .unwrap_or_default()
