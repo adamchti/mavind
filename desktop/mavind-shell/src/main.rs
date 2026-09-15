@@ -14,22 +14,26 @@ mod power;
 mod status;
 
 use gtk4::prelude::*;
-use gtk4::{glib, Application, ApplicationWindow, Box as GtkBox, Button, Label, Orientation};
+use gtk4::{glib, Application, ApplicationWindow, Box as GtkBox, Button, Image, Label, Orientation};
 use gtk4_layer_shell::{Edge, Layer, LayerShell};
 use std::process::Command;
 
 const APP_ID: &str = "os.mavind.Shell";
 const TICK_SECONDS: u32 = 1;
 
-// (icon name, tooltip, command, args)
+// (icon name, tooltip, command, args) — icon names match each app's own
+// .desktop Icon= exactly, so the dock shows the same glass icon Spotlight
+// search does instead of a plain generic symbolic glyph. Launchpad has no
+// .desktop entry of its own (it's not a launchable app), so it keeps a
+// generic icon.
 const DOCK_APPS: &[(&str, &str, &str, &[&str])] = &[
     ("view-app-grid-symbolic", "Launchpad  (Super+Space)", "mavind-launcher", &[]),
-    ("system-file-manager-symbolic", "Files", "minder", &[]),
-    ("web-browser-symbolic", "Mrowser", "mrowser", &[]),
-    ("utilities-terminal-symbolic", "Terminal", "foot", &[]),
-    ("system-run-symbolic", "Windows Apps", "mavind-windows-apps", &[]),
-    ("utilities-system-monitor-symbolic", "System Monitor", "mavind-system-monitor", &[]),
-    ("preferences-system-symbolic", "Settings", "mavind-settings", &[]),
+    ("minder", "Files", "minder", &[]),
+    ("web-browser", "Mrowser", "mrowser", &[]),
+    ("utilities-terminal", "Terminal", "foot", &[]),
+    ("mavind-windows-apps", "Windows Apps", "mavind-windows-apps", &[]),
+    ("mavind-system-monitor", "System Monitor", "mavind-system-monitor", &[]),
+    ("mavind-settings", "Settings", "mavind-settings", &[]),
 ];
 
 fn main() -> glib::ExitCode {
@@ -184,7 +188,13 @@ fn make_dock(app: &Application, monitor: Option<gtk4::gdk::Monitor>) -> Applicat
     root.add_css_class("mavind-dock");
 
     for (icon, tooltip, cmd, extra_args) in DOCK_APPS {
-        let b = Button::from_icon_name(icon);
+        // Image::from_icon_name + set_pixel_size, not Button::from_icon_name
+        // (which gives no size control) — the custom glass icons need real
+        // size to read properly, unlike a tiny toolbar-style symbolic glyph.
+        let image = Image::from_icon_name(icon);
+        image.set_pixel_size(32);
+        let b = Button::new();
+        b.set_child(Some(&image));
         b.add_css_class("dock-icon");
         b.set_has_frame(false);
         b.set_tooltip_text(Some(tooltip));
