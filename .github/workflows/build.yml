@@ -69,6 +69,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
+          # Container job: the checkout is often owned by a different UID
+          # than root sees itself as, and git 2.35.2+ refuses to touch a
+          # repo it doesn't recognize as "ours" for exactly that reason.
+          git config --global --add safe.directory '*'
           BUNDLE="$(mktemp -d)"
           mkdir -p "$BUNDLE/bin" "$BUNDLE/icons" "$BUNDLE/backgrounds"
 
