@@ -25,6 +25,10 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: debian:trixie-slim
+    # Only the release-publish step below needs write access; everything
+    # else in this job only reads.
+    permissions:
+      contents: write
     steps:
       - name: Base tools
         run: |
@@ -38,7 +42,8 @@ jobs:
           apt-get install -y --no-install-recommends \
             cargo rustc pkg-config \
             libgtk-4-dev libglib2.0-dev libgtk4-layer-shell-dev libadwaita-1-dev \
-            libpango1.0-dev libcairo2-dev libwebkitgtk-6.0-dev
+            libpango1.0-dev libcairo2-dev libwebkitgtk-6.0-dev \
+            librsvg2-bin curl
       - uses: actions/cache@v4
         with:
           path: |
@@ -51,6 +56,60 @@ jobs:
       - run: cargo test --workspace
       - run: cargo fmt --all --check || true
       - run: cargo clippy --workspace --all-targets || true
+
+      # Mavind's own components (mavind-shell, icons, ...) are compiled
+      # straight into the image — they're not .deb packages, so plain
+      # `apt upgrade` on an installed system never sees them. This publishes
+      # a small bundle (binaries + icons + wallpapers, not a full ISO) that
+      # `mavind-update` (Settings -> Updates) pulls down. Only on an actual
+      # push to main — never for PR branches.
+      - name: Publish Mavind self-update bundle
+        if: success() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          BUNDLE="$(mktemp -d)"
+          mkdir -p "$BUNDLE/bin" "$BUNDLE/icons" "$BUNDLE/backgrounds"
+
+          for b in mavind-shell mavind-settings mavind-launcher mavind-greeter \
+                   mavind-oobe mavind-installer minder mavind-windows-apps \
+                   mavind-system-monitor mpk mrowser; do
+            [ -f "target/release/$b" ] && cp "target/release/$b" "$BUNDLE/bin/"
+          done
+          cp installer/mavind-install system/update/mavind-update "$BUNDLE/bin/"
+          chmod 755 "$BUNDLE"/bin/*
+
+          for f in desktop/assets/icons/*.svg apps/*/data/icons/*.svg; do
+            [ -e "$f" ] && cp "$f" "$BUNDLE/icons/"
+          done
+
+          rsvg-convert -w 1920 -h 1080 desktop/assets/wallpaper.svg \
+            -o "$BUNDLE/backgrounds/wallpaper.png"
+          rsvg-convert -w 1920 -h 1080 desktop/assets/wallpaper-ocean.svg \
+            -o "$BUNDLE/backgrounds/ocean.png"
+          rsvg-convert -w 1920 -h 1080 desktop/assets/wallpaper-sunset.svg \
+            -o "$BUNDLE/backgrounds/sunset.png"
+
+          grep -vE '^\s*#|^\s*$' system/packages/core.list > "$BUNDLE/packages.txt"
+
+          VERSION="$(git rev-parse --short HEAD)"
+          tar --zstd -C "$BUNDLE" -cf mavind-update.tar.zst bin icons backgrounds packages.txt
+          sha256sum mavind-update.tar.zst > mavind-update.tar.zst.sha256
+          printf '%s' "$VERSION" > mavind-update.version
+
+          if gh release view update-latest >/dev/null 2>&1; then
+            gh release upload update-latest \
+              mavind-update.tar.zst mavind-update.tar.zst.sha256 mavind-update.version \
+              --clobber
+          else
+            gh release create update-latest \
+              mavind-update.tar.zst mavind-update.tar.zst.sha256 mavind-update.version \
+              --title "Mavind self-update (rolling)" \
+              --notes "Rolling build for Settings -> Updates. Not a stable release — see docs/UPDATES.md." \
+              --prerelease
+          fi
+          echo "published update bundle for build ${VERSION}"
 
   # ---------------------------------------------------------------------------
   # Full ISO build, in a privileged Debian trixie container (mmdebstrap needs

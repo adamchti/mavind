@@ -62,6 +62,7 @@ wpasupplicant
 iproute2
 iputils-ping
 netbase
+curl                       # mavind-update (Settings -> Updates) fetches over HTTPS with this
 
 # --- audio -----------------------------------------------------------
 pipewire

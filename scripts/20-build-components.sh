@@ -93,6 +93,20 @@ polkit.addRule(function(action, subject) {
 EOF
 
 # ---------------------------------------------------------------------------
+step "mavind-update (Settings -> Updates: fetches Mavind's own components)"
+install -Dm755 "${REPO_ROOT}/system/update/mavind-update" "${ROOTFS}/usr/bin/mavind-update"
+install -Dm644 /dev/stdin "${ROOTFS}/usr/share/polkit-1/rules.d/20-mavind-update.rules" <<'EOF'
+// Mavind Settings calls: pkexec mavind-update
+polkit.addRule(function(action, subject) {
+    if (action.id == "org.freedesktop.policykit.exec" &&
+        action.lookup("program") == "/usr/bin/mavind-update" &&
+        subject.isInGroup("sudo")) {
+        return polkit.Result.YES;
+    }
+});
+EOF
+
+# ---------------------------------------------------------------------------
 step "desktop entries, icons, polkit"
 install -d "${ROOTFS}/usr/share/applications" \
           "${ROOTFS}/usr/share/icons/hicolor/scalable/apps" \

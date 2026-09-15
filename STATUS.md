@@ -1,6 +1,6 @@
 # Mavind — Build & Feature Status
 
-_Last updated: 2026-09-11 (later same day)_
+_Last updated: 2026-09-15_
 
 This file is the honest source of truth. It does not claim anything is done that is not
 verified. "Verified" means a CI run or a human booted it and checked.
@@ -40,6 +40,7 @@ verified. "Verified" means a CI run or a human booted it and checked.
 | Minder file manager | 🟡 | Real crate: browse/copy/move/rename/delete/properties work; keyboard shortcuts (Ctrl+C/X/V, F2, Delete, Alt+Left/Right) and per-extension icons added; search + drive automount partial |
 | Mrowser browser | 🟡 | WebKitGTK crate; Chrome-style touches: new-tab button lives in the tab strip (Notebook action widget) instead of the main toolbar, rounded pill omnibox, glass toolbar. Only built for `--profile full` — not in the default `core` CI artifact |
 | Mavind Settings | 🟡 | Real crate: About / Appearance / Storage / Network panels wired to live data; others are "coming soon" panels |
+| Mavind self-update (`mavind-update`) | 🟡 | Settings -> Updates now also pulls a small binaries+icons+wallpapers bundle from a rolling GitHub Release (CI publishes it on every push to main) — not a real signed APT repo, see docs/UPDATES.md for the honest trust-model tradeoff |
 | Performance Mode | 🟡 | Toggle writes labwc + shell config; effects are already minimal by default |
 
 ## Phase 3 — Windows Apps

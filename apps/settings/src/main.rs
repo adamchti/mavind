@@ -569,12 +569,32 @@ fn panel_security() -> GtkBox {
 fn panel_updates() -> GtkBox {
     let c = col();
     let n = sys::upgradable_count();
-    c.append(&kv("Updates available", &n.to_string()));
+    c.append(&kv("Debian package updates", &n.to_string()));
+
+    let mavind_status = match sys::mavind_update_check() {
+        Some(true) => "update available",
+        Some(false) => "up to date",
+        None => "couldn't check (offline?)",
+    };
+    c.append(&kv("Mavind updates", mavind_status));
+
     let b = Button::with_label("Check & install updates");
     b.set_halign(Align::Start);
     b.connect_clicked(|_| {
+        // mpk covers Debian packages; mavind-update covers Mavind's own
+        // components (mavind-shell, icons, ...) — those aren't .debs at
+        // all, so plain `apt upgrade` never touches them. Runs in a visible
+        // terminal on purpose: Mavind never updates in the background.
         let _ = Command::new("foot")
-            .args(["-e", "sh", "-c", "mpk update && mpk upgrade; echo; read -p 'done - press enter'"])
+            .args([
+                "-e",
+                "sh",
+                "-c",
+                "mpk update && mpk upgrade; \
+                 echo; echo '--- Mavind components ---'; \
+                 pkexec mavind-update || sudo mavind-update; \
+                 echo; read -p 'done - press enter'",
+            ])
             .spawn();
     });
     c.append(&b);

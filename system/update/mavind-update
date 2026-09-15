@@ -1,0 +1,115 @@
+#!/bin/sh
+# Mavind self-update: pulls the latest Mavind-built binaries/icons/wallpapers
+# (a small bundle, NOT a full ISO) from a GitHub Release and applies them in
+# place. This exists because Mavind's own components (mavind-shell,
+# mavind-settings, the icon set, ...) are compiled straight into the ISO at
+# build time — they are not Debian packages, so plain `apt upgrade` (what
+# `mpk upgrade` runs) never touches them. See docs/UPDATES.md.
+#
+# Trust model, stated honestly: the download is HTTPS and checksum-verified,
+# which protects against corruption/tampering in transit. It does NOT add
+# cryptographic signing on top of that — the checksum is published from the
+# same GitHub release it protects. The actual trust boundary is "whoever has
+# push access to this repository," same as any other file in it.
+#
+#   mavind-update --check   # non-privileged: is a newer build available?
+#   mavind-update           # apply it (needs root)
+set -eu
+
+REPO="adamchti/mavind"
+TAG="update-latest"
+BASE="https://github.com/${REPO}/releases/download/${TAG}"
+STATE_DIR=/var/lib/mavind
+VERSION_FILE="${STATE_DIR}/update-version"
+
+die() { echo "mavind-update: $*" >&2; exit 1; }
+command -v curl >/dev/null 2>&1 || die "curl is required but not installed"
+
+remote_version() {
+  curl -fsSL --connect-timeout 10 "${BASE}/mavind-update.version" 2>/dev/null || true
+}
+
+if [ "${1:-}" = "--check" ]; then
+  rv="$(remote_version)"
+  if [ -z "$rv" ]; then
+    echo "UPDATE_AVAILABLE=unknown"
+    echo "could not reach GitHub"
+    exit 0
+  fi
+  lv="$(cat "$VERSION_FILE" 2>/dev/null || echo "")"
+  if [ "$rv" = "$lv" ]; then
+    echo "UPDATE_AVAILABLE=false"
+    echo "up to date (${lv:-none applied yet})"
+  else
+    echo "UPDATE_AVAILABLE=true"
+    echo "update available: ${lv:-(none applied yet)} -> ${rv}"
+  fi
+  exit 0
+fi
+
+[ "$(id -u)" -eq 0 ] || die "applying an update needs root (run via pkexec/sudo)"
+
+rv="$(remote_version)"
+[ -n "$rv" ] || die "could not reach GitHub to check for updates"
+lv="$(cat "$VERSION_FILE" 2>/dev/null || echo "")"
+if [ "$rv" = "$lv" ]; then
+  echo "mavind-update: already up to date (${lv})"
+  exit 0
+fi
+
+WORK="$(mktemp -d)"
+trap 'rm -rf "$WORK"' EXIT
+
+echo "mavind-update: downloading build ${rv}..."
+curl -fsSL --connect-timeout 10 -o "${WORK}/mavind-update.tar.zst" \
+  "${BASE}/mavind-update.tar.zst"
+curl -fsSL --connect-timeout 10 -o "${WORK}/mavind-update.tar.zst.sha256" \
+  "${BASE}/mavind-update.tar.zst.sha256"
+
+echo "mavind-update: verifying checksum..."
+( cd "$WORK" && sha256sum -c mavind-update.tar.zst.sha256 ) \
+  || die "checksum mismatch — refusing to apply a corrupted/tampered download"
+
+echo "mavind-update: extracting..."
+mkdir -p "${WORK}/bundle"
+tar --zstd -xf "${WORK}/mavind-update.tar.zst" -C "${WORK}/bundle"
+
+# --- newly-required apt packages (e.g. a loader added since the last build)
+if [ -s "${WORK}/bundle/packages.txt" ]; then
+  echo "mavind-update: checking for newly-required packages..."
+  apt-get update -qq || true
+  # word-splitting is intentional: one package name per line
+  # shellcheck disable=SC2046
+  DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    $(cat "${WORK}/bundle/packages.txt") \
+    || echo "mavind-update: warning — some packages could not be installed" >&2
+fi
+
+# --- binaries -----------------------------------------------------------
+if [ -d "${WORK}/bundle/bin" ]; then
+  for f in "${WORK}/bundle/bin"/*; do
+    [ -f "$f" ] || continue
+    install -Dm755 "$f" "/usr/bin/$(basename "$f")"
+  done
+fi
+
+# --- icons + wallpapers --------------------------------------------------
+if [ -d "${WORK}/bundle/icons" ]; then
+  for f in "${WORK}/bundle/icons"/*.svg; do
+    [ -f "$f" ] || continue
+    install -Dm644 "$f" "/usr/share/icons/hicolor/scalable/apps/$(basename "$f")"
+  done
+  gtk-update-icon-cache -qtf /usr/share/icons/hicolor >/dev/null 2>&1 || true
+fi
+if [ -d "${WORK}/bundle/backgrounds" ]; then
+  for f in "${WORK}/bundle/backgrounds"/*.png; do
+    [ -f "$f" ] || continue
+    install -Dm644 "$f" "/usr/share/backgrounds/mavind/$(basename "$f")"
+  done
+fi
+
+mkdir -p "$STATE_DIR"
+printf '%s' "$rv" > "$VERSION_FILE"
+
+echo "mavind-update: applied build ${rv}."
+echo "mavind-update: log out and back in (or reboot) for the desktop to pick it up."
