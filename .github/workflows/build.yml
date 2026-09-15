@@ -43,7 +43,7 @@ jobs:
             cargo rustc pkg-config \
             libgtk-4-dev libglib2.0-dev libgtk4-layer-shell-dev libadwaita-1-dev \
             libpango1.0-dev libcairo2-dev libwebkitgtk-6.0-dev \
-            librsvg2-bin curl
+            librsvg2-bin curl zstd
       - uses: actions/cache@v4
         with:
           path: |
@@ -73,6 +73,10 @@ jobs:
           # than root sees itself as, and git 2.35.2+ refuses to touch a
           # repo it doesn't recognize as "ours" for exactly that reason.
           git config --global --add safe.directory '*'
+          # `container:` jobs run isolated from whatever the runner host has
+          # preinstalled (gh included) — this image only has what earlier
+          # steps in *this* job apt-installed.
+          command -v gh >/dev/null 2>&1 || apt-get install -y --no-install-recommends gh
           BUNDLE="$(mktemp -d)"
           mkdir -p "$BUNDLE/bin" "$BUNDLE/icons" "$BUNDLE/backgrounds"
 
