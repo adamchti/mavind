@@ -25,7 +25,7 @@ hardware and virtual machines, loads a lightweight Wayland desktop, and runs Win
 ### Where is the ISO
 
 You will find the ISO in the Releases or at the Download Page at:
-https://mavind-by-adamchti.base44.app
+https://mavind.base44.app
 (Currently: Version 1.0.2)
 
 ---
